@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <title>图片乱序展示</title>
+    <style type="text/css">
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        background-color: #000000;
+        margin: 0;
+        font-family: Helvetica, sans-serif;
+        overflow: hidden;
+      }
+
+      /*选择按钮样式start*/
+      #menu {
+        position: absolute;
+        z-index: 100;
+        width: 100%;
+        bottom: 50px;
+        text-align: center;
+        font-size: 32px;
+        /* left: calc(41); */
+      }
+
+      button {
+        border: none;
+        background-color: transparent;
+        color: rgba(127, 255, 255, 0.75);
+        padding: 12px 24px;
+        cursor: pointer;
+        outline: 1px solid rgba(127, 255, 255, 0.75);
+      }
+
+      button:hover {
+        background-color: rgba(127, 255, 255, 0.5);
+      }
+
+      button:active {
+        background-color: rgba(127, 255, 255, 0.75);
+      }
+      /*end*/
+
+      /*元素样式start*/
+      .element {
+        width: 120px;
+        height: 160px;
+        cursor: default;
+        text-align: center;
+        /* border: 1px solid rgba( 127, 255, 255, 0.25 ); */
+        /* box-shadow: 0 0 12px rgba( 0, 255, 255, 0.5 ); */
+      }
+
+      .element:hover {
+        border: 1px solid rgba(127, 255, 255, 0.75);
+        box-shadow: 0 0 12px rgba(0, 255, 255, 0.75);
+      }
+
+      .element .number {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 12px;
+        color: rgba(127, 255, 255, 0.75);
+      }
+
+      .element .symbol {
+        position: absolute;
+        top: 40px;
+        left: 0px;
+        right: 0;
+        font-size: 60px;
+        font-weight: bold;
+        color: rgba(255, 255, 255, 0.75);
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.95);
+      }
+
+      .element .detail {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 15px;
+        font-size: 12px;
+        color: rgba(127, 255, 255, 0.75);
+      }
+
+      .noDisplay {
+        display: none;
+      }
+
+      .finaImg {
+        background-image: url(http://henshang-oss.oss-cn-beijing.aliyuncs.com/min/testImg.jpg);
+        background-size: contain;
+        position: absolute;
+        pointer-events: auto;
+        user-select: none;
+        /* transform: translate(-50%, -50%) matrix3d(1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1); */
+        width: 10vw;
+        left: calc(41%);
+        height: 15vw;
+        top: 35%;
+        z-index: 100;
+        display: none;
+      }
+
+      /*end*/
+
+    </style>
+  </head>
+  <body>
+    <div id="container">
+
+      <!-- 选中菜单结构 start-->
+      <div id="menu">
+        <button id="table">初始化图片</button>
+        <button id="sphere" >球形</button>
+        <button id="sphere2" class="noDisplay">SPHERE2</button>
+        <button id="plane" class="noDisplay">PLANE</button>
+        <button id="helix" >柱状立体</button>
+        <button id="grid" >空间排列</button>
+        <button id="recover">聚合</button>
+      </div>
+      <div class="finaImg"></div>
+      <!-- end -->
+    </div>
+    <!-- 3d图形库 -->
+    <!-- 轻量级动画库‘补间’ -->
+    <!-- 轨迹球控制器库 -->
+    <!-- css3D渲染器 -->
+    <script src="./js/three.min.js"></script>
+    <script src="./js/tween.umd.min.js"></script>
+    <script src="./js/TrackballControls.js"></script>
+    <script src="./js/CSS3DRenderer.js"></script>
+    <script src="./js/jq.js"></script>
+
+    <!-- <script src="https://threejs.org/build/three.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/tween.js/18.6.4/tween.umd.min.js"></script>
+    <script src="https://threejs.org/examples/js/controls/TrackballControls.js"></script>
+    <script src="https://threejs.org/examples/js/renderers/CSS3DRenderer.js"></script> -->
+
+    <script>
+     
+
+      /**
+       * @空间复杂度  S(n) = o(1);
+       * @时间复杂度  T(n) = O(1);
+       */
+
+      /**
+       * [table 元素数据]
+       * @type {Array}
+       * @element 五个一组 [ symbol detail1 detail2 columnInfo colInfo ]
+       *
+       * [ scene camera renderer ] the three basic component of three.js
+       * [ controls trackballControls obj ]
+       *
+       * [objects save CSS3D domElem]
+       * @type {Array}
+       *
+       *
+       * [targets save the four kinds vertices]
+       * @type {Object}
+       * [ table sphere helix grid ] transform CSS3D elem'position to one of these for animation
+       */
+
+      // let table   = [
+      // 	"Cm", "Curium", "(247)", 11, 10,
+      // 	"Bk", "Berkelium", "(247)", 12, 10,
+      // 	"Cf", "Californium", "(251)", 13, 10,
+      // 	"Es", "Einstenium", "(252)", 14, 10,
+      // 	"Fm", "Fermium", "(257)", 15, 10,
+      // 	"Md", "Mendelevium", "(258)", 16, 10,
+      // 	"No", "Nobelium", "(259)", 17, 10,
+      // 	"Lr", "Lawrencium", "(262)", 18, 10,
+      // 	"Rf", "Rutherfordium", "(267)", 4, 7,
+      // 	"Db", "Dubnium", "(268)", 5, 7,
+      // 	"Sg", "Seaborgium", "(271)", 6, 7,
+      // 	"Bh", "Bohrium", "(272)", 7, 7,
+      // ];
+      let table = [];
+
+      // 处理图片地址 和结构
+      let list = [];
+      let urlList = [];
+      for (let i = 0; i <= 150; i += 1) {
+        urlList.push(
+          `http://henshang-oss.oss-cn-beijing.aliyuncs.com/min/testImg1.jpg`
+        );
+      }
+      // 行
+      for (let i = 1; i <= 15; i++) {
+        let t = ["url", `index1_${i}`, `index2_${i}`, "列_0", `行_${i}`];
+        t[4] = i;
+        // 列
+        for (let j = 1; j <= 10; j++) {
+          t[3] = j;
+          list.push([...t]);
+        }
+      }
+
+      //  console.log(list);
+
+      //  let ij =0;
+      let list1 = [];
+      list.map((d) => {
+        // d[0]=urlList[ij];
+        // ij++;
+
+        d.map((dd) => {
+          list1.push(dd);
+        });
+      });
+      table = list1;
+
+      let scene, camera, renderer, controls;
+      const objects = [];
+      const targets = {
+        grid: [],
+        helix: [],
+        table: [],
+        sphere: [],
+        recover: [],
+        reset: [],
+      };
+
+      init();
+      animation();
+
+      /**
+       * [init initialize scene && create animation && set constrol]
+       * @Author    yujunhao
+       * @DateTime  2019-03-10
+       * @version   [1.0.0]
+       * @return    {[no]}
+       *
+       * [camera perspective camera]
+       * @param filedView
+       * @param aspect
+       * @param near clipping plane
+       * @param far clipping plane
+       * @type {THREE}
+       *
+       * [renderer CSS3DRenderer only used to tranform domElem to 3D model]
+       * WebGLoutput the father node of domElem container
+       * @type {THREE}
+       *
+       * [controls create trackball control]
+       * controls.minDistance = 500;  the camera min distance in Z Axis
+       * controls.maxDistance = 6000; the camera max distance in Z Axis
+       * @type {THREE}
+       *
+       *
+       */
+
+      function init() {
+        const felidView = 40;
+        // const width 	  = 1200;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const aspect = width / height;
+        const nearPlane = 1;
+        const farPlane = 10000;
+        const WebGLoutput = document.getElementById("container");
+
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(
+          felidView,
+          aspect,
+          nearPlane,
+          farPlane
+        );
+        camera.position.z = 1700;
+
+        renderer = new THREE.CSS3DRenderer();
+        renderer.setSize(width, height);
+        renderer.domElement.style.position = "absolute";
+        renderer.domElement.style.right = 0;
+        renderer.domElement.className = "threeDiv";
+        WebGLoutput.appendChild(renderer.domElement);
+
+        controls = new THREE.TrackballControls(camera, renderer.domElement);
+
+        controls.rotateSpeed = 1;
+        controls.staticMoving = true;
+        controls.minDistance = 500;
+        controls.maxDistance = 5000;
+        controls.addEventListener("change", render);
+
+        /**
+         * [i 0 5 10 .....]
+         * [len iterator count]
+         * @type {Number}
+         *
+         * [element dom element]
+         * [backgroundColor create a random color of g from 0.25 to 0.75]
+         *
+         * [number order]
+         * @type {[int]}
+         *
+         * [symbol example: H element]
+         * @type {[string]}
+         *
+         * [detail fullname && quality]
+         * @type {[string && float]}
+         *
+         *[object transform domElem to CSS3D object]
+         * @type {THREE}
+         * @position vector3( value1, value2, value3 ) [value: -2000 ~ 2000]
+         *
+         *
+         *
+         */
+
+        let i = 0;
+        let len = table.length;
+
+        for (; i < len; i += 5) {
+          const element = document.createElement("div");
+          element.className = "element";
+          element.style.backgroundImage = `url(${urlList[i / 5]})`;
+          // element.style.backgroundImage =`url(${table[i]})`
+          element.style.backgroundSize = "cover";
+
+          // const detail 		= document.createElement('div');
+          // detail.className 	= 'detail';
+          // detail.innerHTML 	= `${ table[ i + 1 ] }<br/>${ table[ i + 2 ] }`;
+          // element.appendChild( detail );
+
+          const object = new THREE.CSS3DObject(element);
+          object.position.x = Math.random() * 4000 - 2000;
+          object.position.y = Math.random() * 4000 - 2000;
+          object.position.z = Math.random() * 4000 - 2000;
+          scene.add(object);
+
+          objects.push(object);
+        }
+
+        const objLength = objects.length;
+
+        // 初始化计算所有情况的点的坐标 下面点击切换效果
+        createGridVertices();
+        createTableVertices();
+        createHelixVertices();
+        createSphereVertices();
+        createRecoverVertices();
+
+        createReset();
+
+        /**
+         * [objLength 118 个元素]
+         * @type {[number]}
+         *
+         * [createTableVertices create table format vertices]
+         *
+         * [createTableVertices create sphere format vertices]
+         *
+         * [createTableVertices create helix format vertices]
+         *
+         * [createTableVertices create grid format vertices]
+         */
+
+        function createTableVertices() {
+          let i = 0;
+
+          for (; i < len; i += 5) {
+            const object = new THREE.Object3D();
+
+            // [ column 18 ]
+            // ------------------------------------------------------------
+            object.position.x = table[i + 3] * 140 - 1260;
+            object.position.y = -table[i + 4] * 180 + 1000;
+            object.position.z = 0;
+            // object.position.x = 0;
+            // object.position.y = 0;
+            // object.position.z = 0;
+
+            // ------------------------------------------------------------
+
+            targets.table.push(object);
+          }
+        }
+
+        function createSphereVertices() {
+          let i = 0;
+          const vector = new THREE.Vector3();
+
+          for (; i < objLength; ++i) {
+            let phi = Math.acos(-1 + (2 * i) / objLength);
+            let theta = Math.sqrt(objLength * Math.PI) * phi;
+            const object = new THREE.Object3D();
+
+            object.position.x = 800 * Math.cos(theta) * Math.sin(phi);
+            object.position.y = 800 * Math.sin(theta) * Math.sin(phi);
+            object.position.z = -800 * Math.cos(phi);
+
+            // rotation object
+
+            vector.copy(object.position).multiplyScalar(2);
+            object.lookAt(vector);
+            targets.sphere.push(object);
+          }
+        }
+
+        function createHelixVertices() {
+          let i = 0;
+          const vector = new THREE.Vector3();
+
+          for (; i < objLength; ++i) {
+            let phi = i * 0.213 + Math.PI;
+
+            const object = new THREE.Object3D();
+
+            object.position.x = 800 * Math.sin(phi);
+            object.position.y = -(i * 8) + 450;
+            object.position.z = 800 * Math.cos(phi + Math.PI);
+
+            object.scale.set(1.1, 1.1, 1.1);
+
+            vector.x = object.position.x * 2;
+            vector.y = object.position.y;
+            vector.z = object.position.z * 2;
+
+            object.lookAt(vector);
+
+            targets.helix.push(object);
+          }
+        }
+
+        function createGridVertices() {
+          let i = 0;
+
+          for (; i < objLength; ++i) {
+            const object = new THREE.Object3D();
+
+            object.position.x = 360 * (i % 5) - 800;
+            object.position.y = -360 * (((i / 5) >> 0) % 5) + 700;
+            object.position.z = -700 * ((i / 25) >> 0);
+
+            targets.grid.push(object);
+          }
+        }
+
+        function createReset() {
+          let i = 0;
+
+          for (; i < objLength; ++i) {
+            const object = new THREE.Object3D();
+
+            object.position.x = Math.random() * 4000 - 2000;
+            object.position.y = Math.random() * 4000 - 2000;
+            object.position.z = Math.random() * 4000 - 2000;
+
+            targets.reset.push(object);
+          }
+        }
+
+        function createRecoverVertices() {
+          let i = 0;
+
+          for (; i < len; i += 5) {
+            const object = new THREE.Object3D();
+
+            // [ column 18 ]
+            object.position.x = 0;
+            object.position.y = 0;
+            object.position.z = 0;
+
+            targets.recover.push(object);
+          }
+        }
+
+        const gridBtn = document.getElementById("grid");
+        const tableBtn = document.getElementById("table");
+        const helixBtn = document.getElementById("helix");
+        const planeBtn = document.getElementById("plane");
+        const sphereBtn = document.getElementById("sphere");
+        const sphere2Btn = document.getElementById("sphere2");
+        const recoverBtn = document.getElementById("recover");
+
+
+        planeBtn.addEventListener(
+          "click",
+          function () {
+            transformPlane(2000);
+          },
+          false
+        );
+        sphere2Btn.addEventListener(
+          "click",
+          function () {
+            transformSphere2(2000);
+          },
+          false
+        );
+        gridBtn.addEventListener(
+          "click",
+          function () {
+            transform(targets.grid, 2000);
+          },
+          false
+        );
+        tableBtn.addEventListener(
+          "click",
+          function () {
+            transform(targets.reset, 3000);
+          },
+          false
+        );
+        helixBtn.addEventListener(
+          "click",
+          function () {
+            transform(targets.helix, 2000);
+          },
+          false
+        );
+        sphereBtn.addEventListener(
+          "click",
+          function () {
+            transform(targets.sphere, 2000);
+          },
+          false
+        );
+        // recoverBtn.addEventListener(  'click', function() { transform( targets.sphere, 2000 ) },  false );
+        recoverBtn.addEventListener(
+          "click",
+          function () {
+            transformRecover(targets.recover, 6000);
+          },
+          false
+        );
+
+       
+
+        window.addEventListener("resize", onWindowResize, false);
+        // default animation
+        // transform( targets.table, 2000 );
+
+        /**
+         * [transform transform domelem'position to target'position]
+         * @param     {[array]}    targets  [description]
+         * @param     {[number]}    duration [description]
+         * @return    {[type]}             [description]
+         */
+
+        function transform(targets, duration) {
+          $(".threeDiv").fadeIn(2000);
+          $(".finaImg").fadeOut(2000);
+
+          TWEEN.removeAll();
+
+          for (let i = 0; i < objLength; ++i) {
+            let object = objects[i];
+            let target = targets[i];
+
+            new TWEEN.Tween(object.position)
+              .to(
+                {
+                  x: target.position.x,
+                  y: target.position.y,
+                  z: target.position.z,
+                },
+                Math.random() * duration + duration
+              )
+              .easing(TWEEN.Easing.Exponential.InOut)
+              .start();
+
+            new TWEEN.Tween(object.rotation)
+              .to(
+                {
+                  x: target.rotation.x,
+                  y: target.rotation.y,
+                  z: target.rotation.z,
+                },
+                Math.random() * duration + duration
+              )
+              .easing(TWEEN.Easing.Exponential.InOut)
+              .start();
+          }
+          // 这个补间用来在位置与旋转补间同步执行，通过onUpdate在每次更新数据后渲染scene和camera
+          new TWEEN.Tween({})
+            .to({}, duration * 2)
+            .onUpdate(render)
+            .start();
+        }
+
+        function transformRecover(targets, duration) {
+          const selectVal = $("#select option:selected").text();
+          const age = $("#age").val();
+          const height = $("#height").val();
+          const weight = $("#weight").val();
+
+          // console.log(selectVal)
+
+          $.ajax({
+            url: "http://www.testhenshang.com",
+            type: "get",
+            data: {
+              persiontype: selectVal,
+              age: age,
+              height: height,
+              weight: weight,
+            },
+            dataType: "JSON",
+            success: function (data) {
+              console.log(data);
+            },
+          });
+
+          $("#table").css("pointer-events", "none");
+
+          TWEEN.removeAll();
+
+          for (let i = 0; i < objLength; ++i) {
+            let object = objects[i];
+            let target = targets[i];
+
+            new TWEEN.Tween(object.position)
+              .to(
+                {
+                  x: target.position.x,
+                  y: target.position.y,
+                  z: target.position.z,
+                },
+                Math.random() * duration + duration
+              )
+              .easing(TWEEN.Easing.Exponential.InOut)
+              .start();
+
+            new TWEEN.Tween(object.rotation)
+              .to(
+                {
+                  x: target.rotation.x,
+                  y: target.rotation.y,
+                  z: target.rotation.z,
+                },
+                Math.random() * duration + duration
+              )
+              .easing(TWEEN.Easing.Exponential.InOut)
+              .start();
+          }
+
+          // 这个补间用来在位置与旋转补间同步执行，通过onUpdate在每次更新数据后渲染scene和camera
+          new TWEEN.Tween({})
+            .to({}, duration * 2)
+            .onUpdate(render)
+            .start();
+
+          setTimeout(() => {
+            $(".threeDiv").fadeOut(1500);
+          }, duration * 2 + 500);
+
+          setTimeout(() => {
+            $(".finaImg").fadeIn(1500);
+            $("#table").css("pointer-events", "auto");
+          }, duration * 2 + 600);
+        }
+
+        function transformSphere2(duration) {
+          TWEEN.removeAll();
+
+          const sphereGeom = new THREE.SphereGeometry(800, 12, 11);
+          const vertices = sphereGeom.vertices;
+          const vector = new THREE.Vector3();
+
+          for (let i = 0; i < objLength; ++i) {
+            const target = new THREE.Object3D();
+
+            target.position.copy(vertices[i]);
+            vector.copy(target.position).multiplyScalar(2);
+            target.lookAt(vector);
+
+            let object = objects[i];
+
+            new TWEEN.Tween(object.position)
+              .to(vertices[i], Math.random() * duration + duration)
+              .easing(TWEEN.Easing.Exponential.InOut)
+              .start();
+
+            new TWEEN.Tween(object.rotation)
+              .to(
+                {
+                  x: target.rotation.x,
+                  y: target.rotation.y,
+                  z: target.rotation.z,
+                },
+                Math.random() * duration + duration
+              )
+              .easing(TWEEN.Easing.Exponential.InOut)
+              .start();
+          }
+
+          new TWEEN.Tween(this)
+            .to({}, duration * 2)
+            .onUpdate(render)
+            .start();
+        }
+
+        function transformPlane(duration) {
+          TWEEN.removeAll();
+
+          const planeGeom = new THREE.PlaneGeometry(1400, 1800, 10, 10);
+          const vertices = planeGeom.vertices;
+          const vector = new THREE.Vector3();
+
+          for (let i = 0; i < objLength; ++i) {
+            const target = new THREE.Object3D();
+
+            target.position.copy(vertices[i]);
+
+            let object = objects[i];
+
+            new TWEEN.Tween(object.position)
+              .to(vertices[i], Math.random() * duration + duration)
+              .easing(TWEEN.Easing.Exponential.InOut)
+              .start();
+
+            new TWEEN.Tween(object.rotation)
+              .to(
+                {
+                  x: target.rotation.x,
+                  y: target.rotation.y,
+                  z: target.rotation.z,
+                },
+                Math.random() * duration + duration
+              )
+              .easing(TWEEN.Easing.Exponential.InOut)
+              .start();
+          }
+          new TWEEN.Tween(this)
+            .to({}, duration * 2)
+            .onUpdate(render)
+            .start();
+        }
+
+        render();
+      }
+
+      /**
+       * [onWindowResize reset the scene size && camera.aspect && re render]
+       * @return
+       */
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth - 350, window.innerHeight);
+        render();
+      }
+
+      /**
+       * [animation update all tween && controls]
+       */
+      function animation() {
+        requestAnimationFrame(animation);
+        TWEEN.update();
+        controls.update();
+      }
+
+      function render() {
+        renderer.render(scene, camera);
+      }
+    </script>
+    <!-- <script src="./js/main.js"></script> -->
+  </body>
+</html>
